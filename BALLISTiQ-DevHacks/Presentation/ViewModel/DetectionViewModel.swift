@@ -17,24 +17,7 @@ import Combine
 enum InputSource: CaseIterable {
     case camera
     case videoFile
-    
-    var title: String {
-        switch self {
-        case .camera:
-            return "Live Camera"
-        case .videoFile:
-            return "Video File"
-        }
-    }
-    
-    var iconName: String {
-        switch self {
-        case .camera:
-            return "camera.fill"
-        case .videoFile:
-            return "video.fill"
-        }
-    }
+    case image
 }
 
 enum DetectionState: Equatable {
@@ -44,6 +27,45 @@ enum DetectionState: Equatable {
     case running
     case paused
     case error(DetectionError)
+    
+    var mainControlIcon: String {
+        switch self {
+        case .idle, .cameraReady, .paused:
+            return "play.fill"
+        case .running:
+            return "stop.fill"
+        default:
+            return "exclamationmark.triangle.fill"
+        }
+    }
+    
+    var mainControlTitle: String {
+        switch self {
+        case .idle, .cameraReady:
+            return "Start"
+        case .paused:
+            return "Resume"
+        case .running:
+            return "Stop"
+        case .initializing:
+            return "Loading..."
+        case .error:
+            return "Error"
+        }
+    }
+    
+    var mainControlColor: Color {
+        switch self {
+        case .idle, .cameraReady, .paused:
+            return .green
+        case .running:
+            return .red
+        case .initializing:
+            return .gray
+        case .error:
+            return .red
+        }
+    }
 }
 
 enum DetectionError: LocalizedError, Equatable {
@@ -72,30 +94,6 @@ enum DetectionError: LocalizedError, Equatable {
     }
 }
 
-struct BulletHoleDetection: Identifiable {
-    let id = UUID()
-    let boundingBox: CGRect
-    let confidence: Float
-    let timestamp: Date
-    
-    var confidencePercentage: Int {
-        Int(confidence * 100)
-    }
-}
-
-// MARK: - Detection Results
-
-struct DetectionResults {
-    var detections: [BulletHoleDetection] = []
-    var frameCount: Int = 0
-    var processingTime: TimeInterval = 0
-    
-    var averageConfidence: Float {
-        guard !detections.isEmpty else { return 0 }
-        return detections.reduce(0) { $0 + $1.confidence } / Float(detections.count)
-    }
-}
-
 // MARK: - ViewModel
 
 @MainActor
@@ -103,7 +101,6 @@ class DetectionViewModel: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var currentInputSource: InputSource = .camera
     @Published var detectionState: DetectionState = .idle
-    @Published var currentResults = DetectionResults()
     @Published var isPlaying = false
     @Published var selectedVideoURL: URL?
     
@@ -120,9 +117,13 @@ class DetectionViewModel: NSObject, ObservableObject {
     @Published var latestBulletHole: TrackedObject?
     @Published var shotResult: ShotResult?
     
+    private var speechManager = SpeechManager()
+    
+    @Published var detectedHoleIDs: [Int] = []
+    
     // MARK: - Private Properties
     
-    private let timer = Timer.publish(every: 1.0/30.0, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 1.0/10.0, on: .main, in: .common).autoconnect()
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -133,16 +134,18 @@ class DetectionViewModel: NSObject, ObservableObject {
         logInfo("BALLISTiQ DetectionViewModel initialized")
         // Model loading is now deferred until startDetection() is called
         
-        timer
-            .sink { [weak self] _ in
-                print("BALLISTiQ Timer tick")
-                guard let self = self, (self.detectionState == .cameraReady && self.currentInputSource == .camera) || self.detectionState == .running else { return }
-                
-                print("BALLISTiQ Processing frame...")
-                
-                Task { await self.processFrame() }
-            }
-            .store(in: &cancellables)
+        if currentInputSource != .image {
+            timer
+                .sink { [weak self] _ in
+                    print("BALLISTiQ Timer tick")
+                    guard let self = self, (self.detectionState == .cameraReady && self.currentInputSource == .camera) || self.detectionState == .running else { return }
+                    
+                    print("BALLISTiQ Processing frame...")
+                    
+                    Task { await self.processFrame() }
+                }
+                .store(in: &cancellables)
+        }
     }
     
     
@@ -155,23 +158,21 @@ class DetectionViewModel: NSObject, ObservableObject {
     
     func onAppear() {
         if currentInputSource == .camera {
-            frameProvider?.start()            
+            frameProvider?.start()
         }
     }
     
     func setInputSource(_ source: InputSource) {
-        logInfo("BALLISTiQ switching input source from \(currentInputSource.title) to \(source.title)")
-        
         cleanup()
         currentInputSource = source
-        currentResults = DetectionResults()
+//        currentResults = DetectionResults()
         
         detectionState = .cameraReady
         
         switch source {
         case .camera:
             frameProvider = CameraFrameProvider()
-        case .videoFile:
+        case .videoFile, .image:
             detectionState = .idle
         }
     }
@@ -179,12 +180,15 @@ class DetectionViewModel: NSObject, ObservableObject {
     func startDetection() {
         guard detectionState != .running else { return }
         
-        logInfo("BALLISTiQ starting detection with \(currentInputSource.title)")
+        logInfo("BALLISTiQ starting detection")
+        
+        detectionState = .running
         
         startProcessing()
     }
     
     func stopDetection() {
+        detectionState = .paused
         cleanup()
     }
     
@@ -194,6 +198,27 @@ class DetectionViewModel: NSObject, ObservableObject {
         selectedVideoURL = url
         
         frameProvider = VideoFrameProvider(videoURL: url)
+    }
+    
+    func selectImageFile(_ url: URL) {
+        logInfo("BALLISTiQ selected image file: \(url.lastPathComponent)")
+        
+        // get uiimage from url
+        guard let image = UIImage(contentsOfFile: url.path) else {
+            detectionState = .error(.videoFileInvalid)
+            return
+        }
+        
+        self.currentFrame = image
+        self.detectionState = .running
+        
+        Task {
+            await submitFrame(image, frameID: 0)
+            
+            // Call again after a 2‑second delay
+            try? await Task.sleep(for: .seconds(2))
+            await submitFrame(image, frameID: 0)
+        }
     }
     
     func transformRect(from rect: CGRect, in imageSize: CGSize, to viewSize: CGSize) -> CGRect {
@@ -237,10 +262,14 @@ class DetectionViewModel: NSObject, ObservableObject {
             currentFrame = frame
         }
         
+        await submitFrame(frame, frameID: frameId)
+    }
+    
+    func submitFrame(_ frame: UIImage, frameID: Int?) async {
         if detectionState == .running {
             let isDetectorRunning = await shotDetector.getIsRunning()
             if !isDetectorRunning {
-                await shotDetector.submitFrame(frame, frameId: frameId)
+                await shotDetector.submitFrame(frame, frameId: frameID ?? 0)
             }
             
             if let result = await shotDetector.getLatestDetections() {
@@ -259,7 +288,25 @@ class DetectionViewModel: NSObject, ObservableObject {
                     self.latestBulletHole = bulletHole
                     
                     if let bulletHole = bulletHole, !filteredCenters.isEmpty {
-                        self.shotResult = self.errorCalculator.calculateShotResult(centers: filteredCenters, bulletHole: bulletHole)
+                        let shotResult = self.errorCalculator.calculateShotResult(centers: filteredCenters, bulletHole: bulletHole)
+                        
+                        if let shotResult {
+                            if !detectedHoleIDs.contains(shotResult.bulletHole.id) {
+                                detectedHoleIDs.append(shotResult.bulletHole.id)
+                                let number = shotResult.closestTarget.className
+                                    .split(separator: "_").last.map(String.init) ?? ""
+                                if number == "0" {
+                                    let text = "Detected bullet hole at target number \(number), at \(shotResult.clockRegion) clock"
+                                    print(text)
+                                    speechManager.speak(text: text)
+                                }
+                            }
+                            print("asdasd", "ID: \(shotResult.bulletHole.id), distance: \(shotResult.distance), row: \(shotResult.hitGridCell?.row ?? -1), col: \(shotResult.hitGridCell?.column ?? -1)", )
+                            print("asdasd \n ---------------------\n")
+                        }
+                        
+                        self.shotResult = shotResult
+                        
                     }
                 }
             }

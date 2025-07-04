@@ -65,6 +65,7 @@ class VideoFrameProvider: FrameProvider {
         playerItem.add(videoOutput!)
         
         player = AVPlayer(playerItem: playerItem)
+        player?.isMuted = true
         
         NotificationCenter.default.addObserver(
             self,

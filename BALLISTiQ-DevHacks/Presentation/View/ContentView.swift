@@ -8,8 +8,9 @@
 import SwiftUI
 
 enum MainRoute: Hashable {
-    case camerDetection
-    case videoDetection
+    case camera
+    case video
+    case image
 }
 
 struct ContentView: View {
@@ -21,10 +22,12 @@ struct ContentView: View {
                 .navigationBarHidden(true)
                 .navigationDestination(for: MainRoute.self) { path in
                     switch path {
-                    case .camerDetection:
+                    case .camera:
                         DetectionView(.camera)
-                    case .videoDetection:
+                    case .video:
                         DetectionView(.videoFile)
+                    case .image:
+                        DetectionView(.image)
                     }
                 }
                 .navigationViewStyle(.stack)
@@ -51,13 +54,20 @@ struct ContentView: View {
                     // Feature Cards
                     FeatureCards()
                     
-                    // Main Action Button
-                    MainActionButton(image: .init(systemName: "target"), title: "Camera") {
-                        mainRouter.push(.camerDetection)
-                    }
-                    
-                    MainActionButton(image: .init(systemName: "target"), title: "Video") {
-                        mainRouter.push(.videoDetection)
+                    VStack(spacing: 16) {
+                        
+                        MainActionButton(image: .init(systemName: "target"), title: "Camera") {
+                            mainRouter.push(.camera)
+                        }
+                        
+                        MainActionButton(image: .init(systemName: "target"), title: "Video") {
+                            mainRouter.push(.video)
+                        }
+                        
+                        MainActionButton(image: .init(systemName: "target"), title: "Image") {
+                            mainRouter.push(.image)
+                        }
+                        
                     }
                     
                     Spacer()
@@ -87,7 +97,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 0, maxWidth: .infinity)
         .padding(.horizontal, 20)
-        .padding(.vertical, 24)
+        .padding(.vertical, 16)
         .background(Color.appPrimary)
     }
     

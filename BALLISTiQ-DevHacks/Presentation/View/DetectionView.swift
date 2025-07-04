@@ -9,11 +9,13 @@
 import SwiftUI
 import AVFoundation
 import AVKit
+import UniformTypeIdentifiers
 import PhotosUI
 
 struct DetectionView: View {
     @StateObject private var viewModel: DetectionViewModel
     @State private var selectedVideo: PhotosPickerItem?
+    @State private var selecteImage: PhotosPickerItem?
     @State private var showingError = false
     @Environment(\.dismiss) var dismiss
     
@@ -66,6 +68,10 @@ struct DetectionView: View {
         }
         .onChange(of: selectedVideo) { newItem in
             handleVideoSelection(newItem)
+        }
+        .onChange(of: selecteImage) { newItem in
+            // get uiimage
+            handleImageSelection(newItem)
         }
     }
     
@@ -160,40 +166,6 @@ struct DetectionView: View {
         }
     }
     
-    // MARK: - Input Source Selector
-    
-    @ViewBuilder
-    private func InputSourceSelector() -> some View {
-        
-        HStack(spacing: 16) {
-            ForEach(InputSource.allCases, id: \.self) { source in
-                Button(action: { viewModel.setInputSource(source) }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: source.iconName)
-                            .font(.system(size: 16, weight: .medium))
-                        
-                        Text(source.title)
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(viewModel.currentInputSource == source ? .white : .gray)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(viewModel.currentInputSource == source ? Color.appPrimary : Color.clear)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.appPrimary, lineWidth: 1)
-                            )
-                    )
-                }
-                .disabled(viewModel.detectionState == .running)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-    }
-    
     // MARK: - Preview Area
     
     @ViewBuilder
@@ -211,10 +183,12 @@ struct DetectionView: View {
                 CameraPreviewView()
             case .videoFile:
                 VideoPreviewView()
+            case .image:
+                ImagePreviewView()
             }
             
             // Detection overlays
-            DetectionOverlaysView()
+//            DetectionOverlaysView()
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -253,12 +227,33 @@ struct DetectionView: View {
                     .font(.system(size: 48))
                     .foregroundColor(.gray)
                 
-                Text("Select Video File")
-                    .font(.title3)
-                    .foregroundColor(.gray)
-                
                 PhotosPicker(selection: $selectedVideo, matching: .videos) {
                     Text("Choose Video")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.appPrimary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.appPrimary, lineWidth: 1)
+                        )
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func ImagePreviewView() -> some View {
+        if let frame = viewModel.currentFrame {
+            FrameView(frame)
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.gray)
+                
+                PhotosPicker(selection: $selecteImage, matching: .images) {
+                    Text("Choose Image")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.appPrimary)
                         .padding(.horizontal, 16)
@@ -294,10 +289,10 @@ struct DetectionView: View {
                         .frame(width: transformedRect.width, height: transformedRect.height)
                         .position(x: transformedRect.midX, y: transformedRect.midY)
                     
-                    Text("ID:\(bulletHole.id)")
-                        .font(.caption)
+                    Text("\(bulletHole.id)")
+                        .font(.system(size: 6))
                         .foregroundColor(.white)
-                        .padding(4)
+                        .padding(2)
                         .background(Color.red)
                         .position(x: transformedRect.midX, y: transformedRect.minY - 10)
                 }
@@ -328,78 +323,35 @@ struct DetectionView: View {
                         .frame(width: transformedRect.width, height: transformedRect.height)
                         .position(x: transformedRect.midX, y: transformedRect.midY)
                     
-                    Text("ID:\(target.className)")
-                        .font(.caption)
+                    Text("\(target.className)")
+                        .font(.caption2)
                         .foregroundColor(.white)
                         .padding(4)
                         .background(Color.green)
                         .position(x: transformedRect.midX, y: transformedRect.minY - 10)
                 }
                 
-//                    ForEach(Array(viewModel.centers.indices), id: \.self) { index in
-//                        let center = viewModel.centers[index]
-//                        let transformedRect = viewModel.transformRect(
-//                            from: center.boundingBox,
-//                            in: frame.size,
-//                            to: geometry.size
-//                        )
-//
-//                        Rectangle()
-//                            .stroke(Color.blue, lineWidth: 2)
-//                            .frame(width: transformedRect.width, height: transformedRect.height)
-//                            .position(x: transformedRect.midX, y: transformedRect.midY)
-//
-//                        Text("ID:\(center.className)")
-//                            .font(.caption)
-//                            .foregroundColor(.white)
-//                            .padding(4)
-//                            .background(Color.blue)
-//                            .position(x: transformedRect.midX, y: transformedRect.minY - 10)
-//                    }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func DetectionOverlaysView() -> some View {
-        GeometryReader { geometry in
-            ForEach(viewModel.currentResults.detections) { detection in
-                DetectionBoundingBox(
-                    detection: detection,
-                    frameSize: geometry.size
-                )
-            }
-        }
-    }
-    
-    // MARK: - Detection Results Overlay
-    
-    @ViewBuilder
-    private func DetectionResultsOverlay() -> some View {
-        VStack {
-            Spacer()
-            
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("🎯 Detections: \(viewModel.currentResults.detections.count)")
+                ForEach(Array(viewModel.centers.indices), id: \.self) { index in
+                    let center = viewModel.centers[index]
+                    let transformedRect = viewModel.transformRect(
+                        from: center.boundingBox,
+                        in: frame.size,
+                        to: geometry.size
+                    )
+                    
+                    Rectangle()
+                        .stroke(Color.blue, lineWidth: 2)
+                        .frame(width: transformedRect.width, height: transformedRect.height)
+                        .position(x: transformedRect.midX, y: transformedRect.midY)
+                    
+                    Text("ID:\(center.className)")
                         .font(.caption)
                         .foregroundColor(.white)
-                    
-                    if !viewModel.currentResults.detections.isEmpty {
-                        Text("Avg Confidence: \(Int(viewModel.currentResults.averageConfidence * 100))%")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    }
+                        .padding(4)
+                        .background(Color.blue)
+                        .position(x: transformedRect.midX, y: transformedRect.minY - 10)
                 }
-                
-                Spacer()
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(Color.black.opacity(0.7))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal, 20)
-            .padding(.bottom, 8)
         }
     }
     
@@ -411,10 +363,10 @@ struct DetectionView: View {
             // Main control button
             Button(action: mainControlAction) {
                 HStack(spacing: 8) {
-                    Image(systemName: mainControlIcon)
+                    Image(systemName: viewModel.detectionState.mainControlIcon)
                         .font(.system(size: 18, weight: .medium))
                     
-                    Text(mainControlTitle)
+                    Text(viewModel.detectionState.mainControlTitle)
                         .font(.system(size: 16, weight: .medium))
                 }
                 .foregroundColor(.white)
@@ -422,24 +374,10 @@ struct DetectionView: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(mainControlColor)
+                        .fill(viewModel.detectionState.mainControlColor)
                 )
             }
             .disabled(!canControlDetection)
-            
-            // Secondary controls
-//            if viewModel.detectionState == .running {
-//                Button(action: { viewModel.pauseDetection() }) {
-//                    Image(systemName: "pause.fill")
-//                        .font(.system(size: 18, weight: .medium))
-//                        .foregroundColor(.white)
-//                        .padding(12)
-//                        .background(
-//                            Circle()
-//                                .fill(Color.orange)
-//                        )
-//                }
-//            }
             
             if viewModel.currentInputSource == .videoFile && viewModel.selectedVideoURL != nil {
                 PhotosPicker(selection: $selectedVideo, matching: .videos) {
@@ -470,45 +408,6 @@ struct DetectionView: View {
         }
     }
     
-    private var mainControlIcon: String {
-        switch viewModel.detectionState {
-        case .idle, .cameraReady, .paused:
-            return "play.fill"
-        case .running:
-            return "stop.fill"
-        default:
-            return "exclamationmark.triangle.fill"
-        }
-    }
-    
-    private var mainControlTitle: String {
-        switch viewModel.detectionState {
-        case .idle, .cameraReady:
-            return "Start"
-        case .paused:
-            return "Resume"
-        case .running:
-            return "Stop"
-        case .initializing:
-            return "Loading..."
-        case .error:
-            return "Error"
-        }
-    }
-    
-    private var mainControlColor: Color {
-        switch viewModel.detectionState {
-        case .idle, .cameraReady, .paused:
-            return .green
-        case .running:
-            return .red
-        case .initializing:
-            return .gray
-        case .error:
-            return .red
-        }
-    }
-    
     private var canControlDetection: Bool {
         switch viewModel.detectionState {
         case .idle, .cameraReady, .running, .paused:
@@ -523,22 +422,17 @@ struct DetectionView: View {
     @ViewBuilder
     private func StatisticsPanel() -> some View {
         HStack(spacing: 24) {
+            
             StatItem(
-                title: "Frames",
-                value: "\(viewModel.currentResults.frameCount)",
+                title: "Closest Target",
+                value: "\(viewModel.shotResult?.closestTarget.className ?? "")",
                 icon: "camera.viewfinder"
             )
             
             StatItem(
-                title: "Processing",
-                value: String(format: "%.1fms", viewModel.currentResults.processingTime * 1000),
+                title: "Clock Region",
+                value: "\(viewModel.shotResult?.clockRegion == nil ? "" : "\(viewModel.shotResult!.clockRegion)")",
                 icon: "timer"
-            )
-            
-            StatItem(
-                title: "FPS",
-                value: viewModel.currentResults.processingTime > 0 ? String(format: "%.1f", 1.0 / viewModel.currentResults.processingTime) : "0",
-                icon: "speedometer"
             )
         }
         .frame(minWidth: 0, maxWidth: .infinity)
@@ -560,49 +454,6 @@ struct DetectionView: View {
             Text(title)
                 .font(.caption)
                 .foregroundColor(.gray)
-        }
-    }
-    
-    // MARK: - Supporting Views
-    
-    struct CameraPreview: UIViewRepresentable {
-        let previewLayer: AVCaptureVideoPreviewLayer
-        
-        func makeUIView(context: Context) -> UIView {
-            let view = UIView()
-            view.layer.addSublayer(previewLayer)
-            return view
-        }
-        
-        func updateUIView(_ uiView: UIView, context: Context) {
-            DispatchQueue.main.async {
-                previewLayer.frame = uiView.bounds
-            }
-        }
-    }
-    
-    struct DetectionBoundingBox: View {
-        let detection: BulletHoleDetection
-        let frameSize: CGSize
-        
-        var body: some View {
-            let box = convertBoundingBox(detection.boundingBox, to: frameSize)
-            
-            Rectangle()
-                .stroke(Color.red, lineWidth: 2)
-                .frame(width: box.width, height: box.height)
-                .position(x: box.midX, y: box.midY)
-        }
-        
-        private func convertBoundingBox(_ boundingBox: CGRect, to frameSize: CGSize) -> CGRect {
-            // Vision framework uses normalized coordinates (0-1)
-            // Convert to actual pixel coordinates
-            let x = boundingBox.minX * frameSize.width
-            let y = (1 - boundingBox.maxY) * frameSize.height // Flip Y coordinate
-            let width = boundingBox.width * frameSize.width
-            let height = boundingBox.height * frameSize.height
-            
-            return CGRect(x: x, y: y, width: width, height: height)
         }
     }
     
@@ -644,26 +495,67 @@ struct DetectionView: View {
             }
         }
     }
+    
+    private func handleImageSelection(_ item: PhotosPickerItem?) {
+        guard let item = item else { return }
+
+        Task {
+            do {
+                guard let imageFile = try await item.loadTransferable(type: ImageFile.self) else {
+                    print("❌ [BALLISTiQ] Failed to load image from PhotosPicker")
+                    return
+                }
+
+                await MainActor.run {
+                    viewModel.selectImageFile(imageFile.url)
+                }
+            } catch {
+                print("❌ [BALLISTiQ] Image selection failed: \(error.localizedDescription)")
+            }
+        }
+    }
 }
 
 // MARK: - VideoFile Transferable
 
 struct VideoFile: Transferable {
     let url: URL
-    
+
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(contentType: .movie) { video in
             SentTransferredFile(video.url)
         } importing: { received in
             let fileName = received.file.lastPathComponent
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-            
+
             if FileManager.default.fileExists(atPath: tempURL.path) {
                 try FileManager.default.removeItem(at: tempURL)
             }
-            
+
             try FileManager.default.copyItem(at: received.file, to: tempURL)
             return VideoFile(url: tempURL)
+        }
+    }
+}
+
+// MARK: - ImageFile Transferable
+
+struct ImageFile: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .image) { image in
+            SentTransferredFile(image.url)
+        } importing: { received in
+            let fileName = received.file.lastPathComponent
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+            if FileManager.default.fileExists(atPath: tempURL.path) {
+                try FileManager.default.removeItem(at: tempURL)
+            }
+
+            try FileManager.default.copyItem(at: received.file, to: tempURL)
+            return ImageFile(url: tempURL)
         }
     }
 }
