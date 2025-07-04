@@ -106,14 +106,13 @@ struct ContentView: View {
     @ViewBuilder
     private func TitleSection() -> some View {
         VStack(spacing: 12) {
-            Text("Assistant Stream")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+            Text("Shooters assistant")
+                .poppinsFont(size: 32, style: .bold)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             
             Text("Advanced Bullet Hole Detection Technology")
-                .font(.subheadline)
+                .poppinsFont(size: 18, style: .regular)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
         }
@@ -153,12 +152,11 @@ struct ContentView: View {
                 .foregroundColor(.appPrimary)
             
             Text(title)
-                .font(.caption)
-                .fontWeight(.semibold)
+                .poppinsFont(size: 16, style: .semiBold)
                 .foregroundColor(.white)
             
             Text(subtitle)
-                .font(.caption2)
+                .poppinsFont(size: 14, style: .regular)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
         }
@@ -185,8 +183,7 @@ struct ContentView: View {
                     .font(.system(size: 20, weight: .medium))
                 
                 Text(title)
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                    .poppinsFont(size: 18, style: .semiBold)
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -208,7 +205,7 @@ struct ContentView: View {
             InfoItem(label: "Version", value: "1.0.0")
             
             Text("© 2024 BALLISTiQ")
-                .font(.caption2)
+                .poppinsFont(size: 16, style: .regular)
                 .foregroundColor(.gray)
         }
         .padding(.bottom, 20)
@@ -218,12 +215,11 @@ struct ContentView: View {
     private func InfoItem(label: String, value: String) -> some View {
         HStack(spacing: 2) {
             Text(label)
-                .font(.caption2)
+                .poppinsFont(size: 14, style: .regular)
                 .foregroundColor(.gray)
             
             Text(value)
-                .font(.caption)
-                .fontWeight(.medium)
+                .poppinsFont(size: 14, style: .medium)
                 .foregroundColor(.white)
         }
     }

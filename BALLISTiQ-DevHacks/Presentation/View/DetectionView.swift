@@ -106,11 +106,6 @@ struct DetectionView: View {
             }
             .background(Color.appPrimary)
             
-//            Text("BALLISTiQ")
-//                .font(.title2)
-//                .fontWeight(.semibold)
-//                .foregroundColor(.white)
-            
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -127,7 +122,7 @@ struct DetectionView: View {
                 .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: viewModel.detectionState == .running)
             
             Text(statusText)
-                .font(.caption)
+                .poppinsFont(size: 12, style: .regular)
                 .foregroundColor(.white)
         }
     }
@@ -205,7 +200,7 @@ struct DetectionView: View {
                     .foregroundColor(.gray)
                 
                 Text("Camera Preview")
-                    .font(.title3)
+                    .poppinsFont(size: 18, style: .regular)
                     .foregroundColor(.gray)
                 
                 if viewModel.detectionState == .initializing {
@@ -229,7 +224,7 @@ struct DetectionView: View {
                 
                 PhotosPicker(selection: $selectedVideo, matching: .videos) {
                     Text("Choose Video")
-                        .font(.system(size: 14, weight: .medium))
+                        .poppinsFont(size: 14, style: .medium)
                         .foregroundColor(.appPrimary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -254,7 +249,7 @@ struct DetectionView: View {
                 
                 PhotosPicker(selection: $selecteImage, matching: .images) {
                     Text("Choose Image")
-                        .font(.system(size: 14, weight: .medium))
+                        .poppinsFont(size: 14, style: .medium)
                         .foregroundColor(.appPrimary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -290,7 +285,7 @@ struct DetectionView: View {
                         .position(x: transformedRect.midX, y: transformedRect.midY)
                     
                     Text("\(bulletHole.id)")
-                        .font(.system(size: 6))
+                        .poppinsFont(size: 8, style: .regular)
                         .foregroundColor(.white)
                         .padding(2)
                         .background(Color.red)
@@ -324,7 +319,7 @@ struct DetectionView: View {
                         .position(x: transformedRect.midX, y: transformedRect.midY)
                     
                     Text("\(target.className)")
-                        .font(.caption2)
+                        .poppinsFont(size: 16, style: .regular)
                         .foregroundColor(.white)
                         .padding(4)
                         .background(Color.green)
@@ -344,8 +339,8 @@ struct DetectionView: View {
                         .frame(width: transformedRect.width, height: transformedRect.height)
                         .position(x: transformedRect.midX, y: transformedRect.midY)
                     
-                    Text("ID:\(center.className)")
-                        .font(.caption)
+                    Text("\(center.className)")
+                        .poppinsFont(size: 8, style: .regular)
                         .foregroundColor(.white)
                         .padding(4)
                         .background(Color.blue)
@@ -367,7 +362,7 @@ struct DetectionView: View {
                         .font(.system(size: 18, weight: .medium))
                     
                     Text(viewModel.detectionState.mainControlTitle)
-                        .font(.system(size: 16, weight: .medium))
+                        .poppinsFont(size: 16, style: .medium)
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 24)
@@ -382,7 +377,7 @@ struct DetectionView: View {
             if viewModel.currentInputSource == .videoFile && viewModel.selectedVideoURL != nil {
                 PhotosPicker(selection: $selectedVideo, matching: .videos) {
                     Text("Select Different Video")
-                        .font(.system(size: 14, weight: .medium))
+                        .poppinsFont(size: 14, style: .medium)
                         .foregroundColor(.appPrimary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -448,11 +443,11 @@ struct DetectionView: View {
                 .foregroundColor(.gray)
             
             Text(value)
-                .font(.system(size: 16, weight: .semibold))
+                .poppinsFont(size: 16, style: .semiBold)
                 .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption)
+                .poppinsFont(size: 14, style: .regular)
                 .foregroundColor(.gray)
         }
     }
