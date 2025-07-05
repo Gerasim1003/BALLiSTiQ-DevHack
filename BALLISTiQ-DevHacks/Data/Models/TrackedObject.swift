@@ -20,12 +20,12 @@ struct TrackedObject {
     var hasBeenDelivered: Bool
     var trackingHistory: [CGRect]
     
-    init(id: Int, boundingBox: CGRect, confidence: Float, className: String) {
+    init(id: Int, boundingBox: CGRect, confidence: Float, className: String, targetType: TargetType? = nil) {
         self.id = id
         self.boundingBox = boundingBox
         self.confidence = confidence
         self.className = className
-        self.targetType = TargetType.from(className: className)
+        self.targetType = targetType ?? TargetType.from(className: className)
         self.lastSeen = Date()
         self.framesSinceLastSeen = 0
         self.isActive = true

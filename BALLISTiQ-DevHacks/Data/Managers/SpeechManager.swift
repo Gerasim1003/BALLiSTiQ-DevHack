@@ -27,7 +27,12 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate {
     
     func speak(text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US") // "com.apple.ttsbundle.siri_Aaron_en-US_compact"
+        // Use a clear, authoritative male voice that suits firing‑range commands
+        if let voice = AVSpeechSynthesisVoice(identifier: "com.apple.ttsbundle.siri_Mark_en-US_compact") {
+            utterance.voice = voice
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        }
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }

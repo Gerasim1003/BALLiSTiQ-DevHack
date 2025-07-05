@@ -30,6 +30,9 @@ struct VideoSharingView: View {
                 // Control panel
                 ControlPanel()
                 
+                // Detection Statistics
+                DetectionStatisticsPanel()
+                
                 // Peer list
                 PeerListView()
             }
@@ -126,11 +129,18 @@ struct VideoSharingView: View {
             
             // Remote video (main view)
             if let remoteFrame = viewModel.remoteFrame {
-                Image(uiImage: remoteFrame)
-                    .resizable()
-                    .scaledToFit()
-                    .clipped()
-                    .cornerRadius(12)
+                ZStack {
+                    Image(uiImage: remoteFrame)
+                        .resizable()
+                        .scaledToFit()
+                        .clipped()
+                        .cornerRadius(12)
+                    
+                    // Remote detection overlays
+                    GeometryReader { geometry in
+                        RemoteDetectionOverlays(geometry: geometry, frame: remoteFrame)
+                    }
+                }
             } else {
                 VStack(spacing: 16) {
                     Image(systemName: "person.2.fill")
@@ -153,17 +163,26 @@ struct VideoSharingView: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Image(uiImage: localFrame)
-                            .resizable()
-                            .scaledToFit()
+                        ZStack {
+                            Image(uiImage: localFrame)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 120, height: 160)
+                                .background(Color.black)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.appPrimary, lineWidth: 2)
+                                )
+                                .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                            
+                            // Local detection overlays
+                            GeometryReader { geometry in
+                                LocalDetectionOverlays(geometry: geometry, frame: localFrame)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
                             .frame(width: 120, height: 160)
-                            .background(Color.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.appPrimary, lineWidth: 2)
-                            )
-                            .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
                     }
                     Spacer()
                 }
@@ -205,6 +224,80 @@ struct VideoSharingView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .background(Color.gray.opacity(0.1))
+    }
+    
+    // MARK: - Detection Statistics Panel
+    
+    @ViewBuilder
+    private func DetectionStatisticsPanel() -> some View {
+        HStack(spacing: 24) {
+            // Local detection stats
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Local Detection")
+                    .poppinsFont(size: 12, style: .medium)
+                    .foregroundColor(.gray)
+                
+                HStack(spacing: 8) {
+                    StatBadge(
+                        value: "\(viewModel.localBulletHoles.count)",
+                        label: "Holes",
+                        color: .red
+                    )
+                    
+                    StatBadge(
+                        value: "\(viewModel.localTargets.count)",
+                        label: "Targets",
+                        color: .green
+                    )
+                    
+                    if let shotResult = viewModel.localShotResult {
+                        Text("Clock: \(shotResult.clockRegion)")
+                            .poppinsFont(size: 10, style: .regular)
+                            .foregroundColor(.appPrimary)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // Remote detection stats
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Remote Detection")
+                    .poppinsFont(size: 12, style: .medium)
+                    .foregroundColor(.gray)
+                
+                HStack(spacing: 8) {
+                    StatBadge(
+                        value: "\(viewModel.remoteBulletHoles.count)",
+                        label: "Holes",
+                        color: .red
+                    )
+                    
+                    StatBadge(
+                        value: "\(viewModel.remoteTargets.count)",
+                        label: "Targets",
+                        color: .green
+                    )
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(Color.gray.opacity(0.05))
+    }
+    
+    @ViewBuilder
+    private func StatBadge(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .poppinsFont(size: 12, style: .semiBold)
+                .foregroundColor(color)
+            
+            Text(label)
+                .poppinsFont(size: 8, style: .regular)
+                .foregroundColor(.gray)
+        }
+        .frame(minWidth: 24)
     }
     
     // MARK: - Control Panel
@@ -317,6 +410,166 @@ struct VideoSharingView: View {
                 .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
                 .opacity(configuration.isPressed ? 0.9 : 1.0)
                 .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+        }
+    }
+    
+    // MARK: - Detection Overlay Views
+    
+    @ViewBuilder
+    private func LocalDetectionOverlays(geometry: GeometryProxy, frame: UIImage) -> some View {
+        ForEach(Array(viewModel.localBulletHoles.indices), id: \.self) { index in
+            let bulletHole = viewModel.localBulletHoles[index]
+            let transformedRect = viewModel.transformRect(
+                from: bulletHole.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Rectangle()
+                .stroke(Color.red, lineWidth: 1)
+                .frame(width: transformedRect.width, height: transformedRect.height)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+            
+            Text("\(bulletHole.id)")
+                .poppinsFont(size: 6, style: .regular)
+                .foregroundColor(.white)
+                .padding(1)
+                .background(Color.red)
+                .position(x: transformedRect.midX, y: max(5, transformedRect.minY - 5))
+        }
+        
+        if let latestBullet = viewModel.localLatestBulletHole {
+            let transformedRect = viewModel.transformRect(
+                from: latestBullet.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Circle()
+                .fill(Color.yellow)
+                .frame(width: 3, height: 3)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+        }
+        
+        ForEach(Array(viewModel.localTargets.indices), id: \.self) { index in
+            let target = viewModel.localTargets[index]
+            let transformedRect = viewModel.transformRect(
+                from: target.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Rectangle()
+                .stroke(Color.green, lineWidth: 1)
+                .frame(width: transformedRect.width, height: transformedRect.height)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+            
+            Text("\(target.className)")
+                .poppinsFont(size: 6, style: .regular)
+                .foregroundColor(.white)
+                .padding(1)
+                .background(Color.green)
+                .position(x: transformedRect.midX, y: max(5, transformedRect.minY - 5))
+        }
+        
+        ForEach(Array(viewModel.localCenters.indices), id: \.self) { index in
+            let center = viewModel.localCenters[index]
+            let transformedRect = viewModel.transformRect(
+                from: center.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Rectangle()
+                .stroke(Color.blue, lineWidth: 1)
+                .frame(width: transformedRect.width, height: transformedRect.height)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+            
+            Text("\(center.className)")
+                .poppinsFont(size: 6, style: .regular)
+                .foregroundColor(.white)
+                .padding(1)
+                .background(Color.blue)
+                .position(x: transformedRect.midX, y: max(5, transformedRect.minY - 5))
+        }
+    }
+    
+    @ViewBuilder
+    private func RemoteDetectionOverlays(geometry: GeometryProxy, frame: UIImage) -> some View {
+        ForEach(Array(viewModel.remoteBulletHoles.indices), id: \.self) { index in
+            let bulletHole = viewModel.remoteBulletHoles[index]
+            let transformedRect = viewModel.transformRect(
+                from: bulletHole.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Rectangle()
+                .stroke(Color.red, lineWidth: 2)
+                .frame(width: transformedRect.width, height: transformedRect.height)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+            
+            Text("\(bulletHole.id)")
+                .poppinsFont(size: 8, style: .regular)
+                .foregroundColor(.white)
+                .padding(2)
+                .background(Color.red)
+                .position(x: transformedRect.midX, y: transformedRect.minY - 10)
+        }
+        
+        if let latestBullet = viewModel.remoteLatestBulletHole {
+            let transformedRect = viewModel.transformRect(
+                from: latestBullet.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Circle()
+                .fill(Color.yellow)
+                .frame(width: 6, height: 6)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+        }
+        
+        ForEach(Array(viewModel.remoteTargets.indices), id: \.self) { index in
+            let target = viewModel.remoteTargets[index]
+            let transformedRect = viewModel.transformRect(
+                from: target.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Rectangle()
+                .stroke(Color.green, lineWidth: 2)
+                .frame(width: transformedRect.width, height: transformedRect.height)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+            
+            Text("\(target.className)")
+                .poppinsFont(size: 16, style: .regular)
+                .foregroundColor(.white)
+                .padding(4)
+                .background(Color.green)
+                .position(x: transformedRect.midX, y: transformedRect.minY - 10)
+        }
+        
+        ForEach(Array(viewModel.remoteCenters.indices), id: \.self) { index in
+            let center = viewModel.remoteCenters[index]
+            let transformedRect = viewModel.transformRect(
+                from: center.boundingBox,
+                in: frame.size,
+                to: geometry.size
+            )
+            
+            Rectangle()
+                .stroke(Color.blue, lineWidth: 2)
+                .frame(width: transformedRect.width, height: transformedRect.height)
+                .position(x: transformedRect.midX, y: transformedRect.midY)
+            
+            Text("\(center.className)")
+                .poppinsFont(size: 8, style: .regular)
+                .foregroundColor(.white)
+                .padding(4)
+                .background(Color.blue)
+                .position(x: transformedRect.midX, y: transformedRect.minY - 10)
         }
     }
 }
