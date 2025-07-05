@@ -21,7 +21,10 @@ actor ObjectTracker {
     private let historicalMatchThreshold: Float = 0.4
     
     func update(with detections: YOLOResult) -> [TrackedObject] {
-        let matches = matchDetections(detections.boxes)
+        let boxes = detections.boxes.filter { box in
+            box.cls != "bullet" || (box.xywh.origin.x > 0 && box.xywh.origin.x < 300 && box.xywh.origin.y > 500 && box.xywh.origin.y < 900)
+        }
+        let matches = matchDetections(boxes)
         
         for (detection, objectId) in matches {
             if let id = objectId {

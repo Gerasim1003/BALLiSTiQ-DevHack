@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import CoreImage
 import AVFoundation
 
 protocol FrameProvider {
@@ -28,6 +29,9 @@ class VideoFrameProvider: FrameProvider {
     private var _currentFrame: UIImage?
     private var _isReady = false
     private var _frameId: Int = 0
+    
+    // Playback speed multiplier (e.g. 0.5 = half‑speed, 2.0 = double‑speed)
+    private var playbackSpeed: Float = 1.0
     
     private let videoURL: URL
     private let processingQueue = DispatchQueue(label: "video.processing", qos: .userInteractive)
@@ -90,7 +94,7 @@ class VideoFrameProvider: FrameProvider {
         displayLink = CADisplayLink(target: self, selector: #selector(updateFrame))
         displayLink?.add(to: .main, forMode: .default)
         
-        player.play()
+        player.playImmediately(atRate: playbackSpeed)
         print("[VideoFrameProvider] Started playing video")
     }
     
@@ -132,6 +136,25 @@ class VideoFrameProvider: FrameProvider {
     
     func getLatestFrameId() -> Int {
         return _frameId
+    }
+    
+    // MARK: - Playback Speed Control
+    /// Sets the playback speed.  Pass 1.0 for normal speed, 0.5 for half‑speed,
+    /// 2.0 for double‑speed, etc.  Values are clamped to a reasonable range.
+    func setPlaybackSpeed(_ speed: Float) {
+        // Clamp speed between 0.1× and 4×
+        let clamped = max(0.1, min(speed, 4.0))
+        playbackSpeed = clamped
+        
+        // If the player is already running, update its rate immediately
+        if let player = player, player.timeControlStatus == .playing {
+            player.rate = clamped
+        }
+    }
+    
+    /// Returns the current playback speed multiplier.
+    func getPlaybackSpeed() -> Float {
+        return playbackSpeed
     }
     
     private func pixelBufferToUIImage(_ pixelBuffer: CVPixelBuffer) -> UIImage? {
@@ -305,9 +328,9 @@ class CameraFrameProvider: NSObject, FrameProvider {
     func setZoom(factor: CGFloat, completion: ((CGFloat) -> Void)? = nil) {
         print("[CameraFrameProvider] setZoom called with factor: \(factor)")
         sessionQueue.async { [weak self] in
-            guard let self = self, let device = self.captureDevice else { 
+            guard let self = self, let device = self.captureDevice else {
                 print("[CameraFrameProvider] setZoom failed: no device")
-                return 
+                return
             }
             let clamped = max(self.minZoomFactor, min(factor, self.maxZoomFactor))
             print("[CameraFrameProvider] Setting zoom from \(device.videoZoomFactor) to \(clamped)")
@@ -359,4 +382,4 @@ extension CameraFrameProvider: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
         }
     }
-} 
+}

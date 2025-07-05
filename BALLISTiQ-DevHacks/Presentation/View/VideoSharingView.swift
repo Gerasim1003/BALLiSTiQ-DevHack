@@ -233,28 +233,28 @@ struct VideoSharingView: View {
         HStack(spacing: 24) {
             // Local detection stats
             VStack(alignment: .leading, spacing: 4) {
-                Text("Local Detection")
+                Text("Player 1")
                     .poppinsFont(size: 12, style: .medium)
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 8) {
                     StatBadge(
                         value: "\(viewModel.localBulletHoles.count)",
-                        label: "Holes",
+                        label: "Score",
                         color: .red
                     )
                     
-                    StatBadge(
-                        value: "\(viewModel.localTargets.count)",
-                        label: "Targets",
-                        color: .green
-                    )
-                    
-                    if let shotResult = viewModel.localShotResult {
-                        Text("Clock: \(shotResult.clockRegion)")
-                            .poppinsFont(size: 10, style: .regular)
-                            .foregroundColor(.appPrimary)
-                    }
+//                    StatBadge(
+//                        value: "\(viewModel.localTargets.count)",
+//                        label: "Targets",
+//                        color: .green
+//                    )
+//                    
+//                    if let shotResult = viewModel.localShotResult {
+//                        Text("Clock: \(shotResult.clockRegion)")
+//                            .poppinsFont(size: 10, style: .regular)
+//                            .foregroundColor(.appPrimary)
+//                    }
                 }
             }
             
@@ -262,22 +262,22 @@ struct VideoSharingView: View {
             
             // Remote detection stats
             VStack(alignment: .trailing, spacing: 4) {
-                Text("Remote Detection")
+                Text("Player 2")
                     .poppinsFont(size: 12, style: .medium)
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 8) {
                     StatBadge(
                         value: "\(viewModel.remoteBulletHoles.count)",
-                        label: "Holes",
+                        label: "Score",
                         color: .red
                     )
                     
-                    StatBadge(
-                        value: "\(viewModel.remoteTargets.count)",
-                        label: "Targets",
-                        color: .green
-                    )
+//                    StatBadge(
+//                        value: "\(viewModel.remoteTargets.count)",
+//                        label: "Targets",
+//                        color: .green
+//                    )
                 }
             }
         }
@@ -293,9 +293,9 @@ struct VideoSharingView: View {
                 .poppinsFont(size: 12, style: .semiBold)
                 .foregroundColor(color)
             
-            Text(label)
-                .poppinsFont(size: 8, style: .regular)
-                .foregroundColor(.gray)
+//            Text(label)
+//                .poppinsFont(size: 8, style: .regular)
+//                .foregroundColor(.gray)
         }
         .frame(minWidth: 24)
     }
@@ -332,27 +332,25 @@ struct VideoSharingView: View {
     
     @ViewBuilder
     private func PeerListView() -> some View {
-        if !viewModel.peers.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Available Peers")
-                    .poppinsFont(size: 16, style: .semiBold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(viewModel.peers) { peer in
-                            PeerRow(peer: peer) {
-                                viewModel.invitePeer(peer)
-                            }
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Available Peers")
+                .poppinsFont(size: 16, style: .semiBold)
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+            
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(viewModel.peers) { peer in
+                        PeerRow(peer: peer) {
+                            viewModel.invitePeer(peer)
                         }
                     }
-                    .padding(.horizontal, 20)
                 }
-                .frame(maxHeight: 120)
+                .padding(.horizontal, 20)
             }
-            .padding(.bottom, 20)
+            .frame(maxHeight: 120)
         }
+        .padding(.bottom, 20)
     }
     
     @ViewBuilder
@@ -430,12 +428,12 @@ struct VideoSharingView: View {
                 .frame(width: transformedRect.width, height: transformedRect.height)
                 .position(x: transformedRect.midX, y: transformedRect.midY)
             
-            Text("\(bulletHole.id)")
-                .poppinsFont(size: 6, style: .regular)
-                .foregroundColor(.white)
-                .padding(1)
-                .background(Color.red)
-                .position(x: transformedRect.midX, y: max(5, transformedRect.minY - 5))
+//            Text("\(bulletHole.id)")
+//                .poppinsFont(size: 6, style: .regular)
+//                .foregroundColor(.white)
+//                .padding(1)
+//                .background(Color.red)
+//                .position(x: transformedRect.midX, y: max(5, transformedRect.minY - 5))
         }
         
         if let latestBullet = viewModel.localLatestBulletHole {
@@ -509,12 +507,12 @@ struct VideoSharingView: View {
                 .frame(width: transformedRect.width, height: transformedRect.height)
                 .position(x: transformedRect.midX, y: transformedRect.midY)
             
-            Text("\(bulletHole.id)")
-                .poppinsFont(size: 8, style: .regular)
-                .foregroundColor(.white)
-                .padding(2)
-                .background(Color.red)
-                .position(x: transformedRect.midX, y: transformedRect.minY - 10)
+//            Text("\(bulletHole.id)")
+//                .poppinsFont(size: 8, style: .regular)
+//                .foregroundColor(.white)
+//                .padding(2)
+//                .background(Color.red)
+//                .position(x: transformedRect.midX, y: transformedRect.minY - 10)
         }
         
         if let latestBullet = viewModel.remoteLatestBulletHole {

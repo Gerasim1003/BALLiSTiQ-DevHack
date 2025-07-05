@@ -51,6 +51,7 @@ actor ShotDetector {
         Task.detached { [weak self] in
 //            try await Task.sleep(for: .seconds(1.0 / 5.0))
             let detectionResult = model(frame)
+            
             await self?.updateResults(detectionResult)
         }
     }

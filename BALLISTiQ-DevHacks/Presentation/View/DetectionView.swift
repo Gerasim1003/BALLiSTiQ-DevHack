@@ -284,12 +284,12 @@ struct DetectionView: View {
                         .frame(width: transformedRect.width, height: transformedRect.height)
                         .position(x: transformedRect.midX, y: transformedRect.midY)
                     
-                    Text("\(bulletHole.id)")
-                        .poppinsFont(size: 8, style: .regular)
-                        .foregroundColor(.white)
-                        .padding(2)
-                        .background(Color.red)
-                        .position(x: transformedRect.midX, y: transformedRect.minY - 10)
+//                    Text("\(bulletHole.id)")
+//                        .poppinsFont(size: 8, style: .regular)
+//                        .foregroundColor(.white)
+//                        .padding(2)
+//                        .background(Color.red)
+//                        .position(x: transformedRect.midX, y: transformedRect.minY - 10)
                 }
                 
                 if let latestBullet = viewModel.latestBulletHole {
