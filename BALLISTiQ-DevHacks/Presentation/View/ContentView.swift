@@ -11,6 +11,7 @@ enum MainRoute: Hashable {
     case camera
     case video
     case image
+    case test
     case videoSharing
 }
 
@@ -29,6 +30,8 @@ struct ContentView: View {
                         DetectionView(.videoFile)
                     case .image:
                         DetectionView(.image)
+                    case .test:
+                        ErrorCalculatorTestView()
                     case .videoSharing:
                         VideoSharingView()
                     }
@@ -47,42 +50,50 @@ struct ContentView: View {
                 // Header Section
                 HeaderSection()
                 
-                // Main Content
-                VStack(spacing: 32) {
-                    Spacer()
+                ScrollView(.vertical, showsIndicators: false) {
                     
-                    // App Title and Subtitle
-                    TitleSection()
-                    
-                    // Feature Cards
-                    FeatureCards()
-                    
-                    VStack(spacing: 16) {
+                    // Main Content
+                    VStack(spacing: 32) {
+                        Spacer()
                         
-                        MainActionButton(image: .init(systemName: "target"), title: "Camera") {
-                            mainRouter.push(.camera)
+                        // App Title and Subtitle
+                        TitleSection()
+                        
+                        // Feature Cards
+                        FeatureCards()
+                        
+                        VStack(spacing: 16) {
+                            
+                            MainActionButton(image: .init(systemName: "camera.fill"), title: "Camera") {
+                                mainRouter.push(.camera)
+                            }
+                            
+                            MainActionButton(image: .init(systemName: "video.fill"), title: "Video") {
+                                mainRouter.push(.video)
+                            }
+                            
+                            MainActionButton(image: .init(systemName: "photo.fill"), title: "Image") {
+                                mainRouter.push(.image)
+                            }
+                            
+                            MainActionButton(image: .init(systemName: "scope"), title: "Test") {
+                                mainRouter.push(.test)
+                            }
+                            
+                            MainActionButton(image: .init(systemName: "video.bubble.left"), title: "P2P Streaming") {
+                                mainRouter.push(.videoSharing)
+                            }
+                            
                         }
                         
-                        MainActionButton(image: .init(systemName: "target"), title: "Video") {
-                            mainRouter.push(.video)
-                        }
+                        Spacer()
                         
-                        MainActionButton(image: .init(systemName: "target"), title: "Image") {
-                            mainRouter.push(.image)
-                        }
-                        
-                        MainActionButton(image: .init(systemName: "video.bubble.left"), title: "P2P Streaming") {
-                            mainRouter.push(.videoSharing)
-                        }
-                        
+                        // Footer
+                        FooterSection()
                     }
+                    .padding(.horizontal, 24)
                     
-                    Spacer()
-                    
-                    // Footer
-                    FooterSection()
                 }
-                .padding(.horizontal, 24)
             }
         }
     }
@@ -113,7 +124,7 @@ struct ContentView: View {
     @ViewBuilder
     private func TitleSection() -> some View {
         VStack(spacing: 12) {
-            Text("Shooters assistant")
+            Text("Shooters Assistant")
                 .poppinsFont(size: 32, style: .bold)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
@@ -161,6 +172,7 @@ struct ContentView: View {
             Text(title)
                 .poppinsFont(size: 16, style: .semiBold)
                 .foregroundColor(.white)
+                .multilineTextAlignment(.center)
             
             Text(subtitle)
                 .poppinsFont(size: 14, style: .regular)

@@ -350,15 +350,15 @@ class DetectionViewModel: NSObject, ObservableObject {
             .replacingOccurrences(of: "_", with: " ")
             .capitalized
         
-        let announcement = "Target detected: \(targetName)"
-        print("🎯 [BALLISTiQ] \(announcement)")
-        speechManager.speak(text: announcement)
+//        let announcement = "Target detected: \(targetName)"
+//        print("🎯 [BALLISTiQ] \(announcement)")
+//        speechManager.speak(text: announcement)
     }
     
     private func announceBulletHole(_ bulletHole: TrackedObject) {
-        let announcement = "Bullet hole detected"
-        print("🎯 [BALLISTiQ] \(announcement)")
-        speechManager.speak(text: announcement)
+//        let announcement = "Bullet hole detected"
+//        print("🎯 [BALLISTiQ] \(announcement)")
+//        speechManager.speak(text: announcement)
     }
     
     private func announceShotResult(_ shotResult: ShotResult) {
@@ -382,16 +382,16 @@ class DetectionViewModel: NSObject, ObservableObject {
             announcement += ", distance \(distance) units"
         }
         
-        // Add accuracy assessment
-        if shotResult.distance < 10 {
-            announcement += ". Excellent shot!"
-        } else if shotResult.distance < 20 {
-            announcement += ". Good shot!"
-        } else if shotResult.distance < 30 {
-            announcement += ". Fair shot."
-        } else {
-            announcement += ". Keep practicing!"
-        }
+//        // Add accuracy assessment
+//        if shotResult.distance < 10 {
+//            announcement += ". Excellent shot!"
+//        } else if shotResult.distance < 20 {
+//            announcement += ". Good shot!"
+//        } else if shotResult.distance < 30 {
+//            announcement += ". Fair shot."
+//        } else {
+//            announcement += ". Keep practicing!"
+//        }
         
         print("🎯 [BALLISTiQ] \(announcement)")
         speechManager.speak(text: announcement)

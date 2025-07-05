@@ -646,16 +646,16 @@ class VideoSharingViewModel: NSObject, ObservableObject {
             announcement += ", distance \(distance) units"
         }
         
-        // Add accuracy assessment
-        if shotResult.distance < 10 {
-            announcement += ". Excellent shot!"
-        } else if shotResult.distance < 20 {
-            announcement += ". Good shot!"
-        } else if shotResult.distance < 30 {
-            announcement += ". Fair shot."
-        } else {
-            announcement += ". Keep practicing!"
-        }
+//        // Add accuracy assessment
+//        if shotResult.distance < 10 {
+//            announcement += ". Excellent shot!"
+//        } else if shotResult.distance < 20 {
+//            announcement += ". Good shot!"
+//        } else if shotResult.distance < 30 {
+//            announcement += ". Fair shot."
+//        } else {
+//            announcement += ". Keep practicing!"
+//        }
         
         print("🎯 [VideoSharing] \(announcement)")
         speechManager.speak(text: announcement)
