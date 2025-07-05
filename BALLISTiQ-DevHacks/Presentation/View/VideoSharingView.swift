@@ -77,7 +77,7 @@ struct VideoSharingView: View {
     
     @ViewBuilder
     private func StatusIndicator() -> some View {
-        HStack(spacing: 6) {
+        VStack(spacing: 6) {
             Circle()
                 .fill(statusColor)
                 .frame(width: 8, height: 8)

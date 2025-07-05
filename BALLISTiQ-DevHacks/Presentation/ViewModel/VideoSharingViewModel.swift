@@ -54,6 +54,10 @@ class VideoSharingViewModel: NSObject, ObservableObject {
     nonisolated(unsafe) private var lastFrameTime: TimeInterval = 0
     private let frameInterval: TimeInterval = 1.0 / 15.0 // 15 FPS
     
+    // Orientation testing - using UI rotation instead of backend rotation
+    private let useImageRotation = false // Disabled - using UI rotation instead
+    private let cameraOrientation: AVCaptureVideoOrientation = .portrait // Default orientation
+    
     // MARK: - Initialization
     override init() {
         super.init()
@@ -136,6 +140,17 @@ class VideoSharingViewModel: NSObject, ObservableObject {
         
         captureSession.addOutput(videoOutput)
         
+        // Fix video orientation after adding output
+        if let connection = videoOutput.connection(with: .video) {
+            if connection.isVideoOrientationSupported {
+                connection.videoOrientation = cameraOrientation
+                print("🎥 [VideoSharing] Set camera orientation to: \(cameraOrientation)")
+            }
+            if connection.isVideoMirroringSupported {
+                connection.isVideoMirrored = false
+            }
+        }
+        
         print("🎥 [VideoSharing] Camera setup complete")
     }
     
@@ -216,6 +231,37 @@ class VideoSharingViewModel: NSObject, ObservableObject {
         }
         peers = currentPeers
     }
+    
+    private func fixImageOrientation(_ image: UIImage) -> UIImage {
+        // Rotate the image 90 degrees counter-clockwise to fix orientation
+        guard let cgImage = image.cgImage else { return image }
+        
+        let width = cgImage.width
+        let height = cgImage.height
+        
+        // Create context with swapped dimensions for 90-degree rotation
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: height,
+            height: width,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return image }
+        
+        // Apply rotation transform (90 degrees clockwise)
+        context.translateBy(x: 0, y: CGFloat(width))
+        context.rotate(by: -.pi / 2)
+        
+        // Draw the image
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        
+        guard let rotatedCGImage = context.makeImage() else { return image }
+        
+        return UIImage(cgImage: rotatedCGImage)
+    }
 }
 
 // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
@@ -236,15 +282,19 @@ extension VideoSharingViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
         
         guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return }
         
-        let uiImage = UIImage(cgImage: cgImage)
+        // Create UIImage
+        let rawImage = UIImage(cgImage: cgImage)
         
         Task { @MainActor in
-            self.localFrame = uiImage
+            // Apply rotation if enabled
+            let finalImage = self.useImageRotation ? self.fixImageOrientation(rawImage) : rawImage
+            
+            self.localFrame = finalImage
             self.lastFrameTime = currentTime
             
             // Send frame to connected peers
             if self.isStreaming {
-                self.sendFrame(uiImage)
+                self.sendFrame(finalImage)
             }
         }
     }
