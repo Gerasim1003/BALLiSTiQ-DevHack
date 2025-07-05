@@ -11,6 +11,7 @@ enum MainRoute: Hashable {
     case camera
     case video
     case image
+    case videoSharing
 }
 
 struct ContentView: View {
@@ -28,6 +29,8 @@ struct ContentView: View {
                         DetectionView(.videoFile)
                     case .image:
                         DetectionView(.image)
+                    case .videoSharing:
+                        VideoSharingView()
                     }
                 }
                 .navigationViewStyle(.stack)
@@ -66,6 +69,10 @@ struct ContentView: View {
                         
                         MainActionButton(image: .init(systemName: "target"), title: "Image") {
                             mainRouter.push(.image)
+                        }
+                        
+                        MainActionButton(image: .init(systemName: "video.bubble.left"), title: "P2P Streaming") {
+                            mainRouter.push(.videoSharing)
                         }
                         
                     }

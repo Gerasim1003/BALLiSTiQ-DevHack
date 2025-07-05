@@ -120,6 +120,7 @@ class DetectionViewModel: NSObject, ObservableObject {
     private var speechManager = SpeechManager()
     
     @Published var detectedHoleIDs: [Int] = []
+    @Published var detectedTargetIDs: [Int] = []
     
     // MARK: - Private Properties
     
@@ -287,26 +288,28 @@ class DetectionViewModel: NSObject, ObservableObject {
                     self.centers = filteredCenters
                     self.latestBulletHole = bulletHole
                     
+                    // Announce new targets detected
+                    self.announceNewTargets(filteredTargets)
+                    
+                    // Announce new bullet holes and calculate shot results
                     if let bulletHole = bulletHole, !filteredCenters.isEmpty {
                         let shotResult = self.errorCalculator.calculateShotResult(centers: filteredCenters, bulletHole: bulletHole)
                         
                         if let shotResult {
                             if !detectedHoleIDs.contains(shotResult.bulletHole.id) {
                                 detectedHoleIDs.append(shotResult.bulletHole.id)
-                                let number = shotResult.closestTarget.className
-                                    .split(separator: "_").last.map(String.init) ?? ""
-                                if number == "0" {
-                                    let text = "Detected bullet hole at target number \(number), at \(shotResult.clockRegion) clock"
-                                    print(text)
-                                    speechManager.speak(text: text)
-                                }
+                                self.announceShotResult(shotResult)
                             }
-                            print("asdasd", "ID: \(shotResult.bulletHole.id), distance: \(shotResult.distance), row: \(shotResult.hitGridCell?.row ?? -1), col: \(shotResult.hitGridCell?.column ?? -1)", )
-                            print("asdasd \n ---------------------\n")
+                            print("🎯 [BALLISTiQ] Shot Result - ID: \(shotResult.bulletHole.id), distance: \(shotResult.distance), row: \(shotResult.hitGridCell?.row ?? -1), col: \(shotResult.hitGridCell?.column ?? -1)")
                         }
                         
                         self.shotResult = shotResult
-                        
+                    } else if let bulletHole = bulletHole {
+                        // Announce bullet hole detected even without targets
+                        if !detectedHoleIDs.contains(bulletHole.id) {
+                            detectedHoleIDs.append(bulletHole.id)
+                            self.announceBulletHole(bulletHole)
+                        }
                     }
                 }
             }
@@ -329,6 +332,69 @@ class DetectionViewModel: NSObject, ObservableObject {
 //        errorMessage = nil
 //        updateStatus()
 //        print("[VideoDetectionView] Started processing")
+    }
+    
+    // MARK: - Speech Synthesis Methods
+    
+    private func announceNewTargets(_ targets: [TrackedObject]) {
+        for target in targets {
+            if !detectedTargetIDs.contains(target.id) {
+                detectedTargetIDs.append(target.id)
+                announceTarget(target)
+            }
+        }
+    }
+    
+    private func announceTarget(_ target: TrackedObject) {
+        let targetName = target.className
+            .replacingOccurrences(of: "_", with: " ")
+            .capitalized
+        
+        let announcement = "Target detected: \(targetName)"
+        print("🎯 [BALLISTiQ] \(announcement)")
+        speechManager.speak(text: announcement)
+    }
+    
+    private func announceBulletHole(_ bulletHole: TrackedObject) {
+        let announcement = "Bullet hole detected"
+        print("🎯 [BALLISTiQ] \(announcement)")
+        speechManager.speak(text: announcement)
+    }
+    
+    private func announceShotResult(_ shotResult: ShotResult) {
+        let targetNumber = shotResult.closestTarget.className
+            .split(separator: "_").last.map(String.init) ?? ""
+        
+        let clockRegion = shotResult.clockRegion
+        let distance = String(format: "%.1f", shotResult.distance)
+        
+        var announcement = "Shot detected"
+        
+        if !targetNumber.isEmpty {
+            announcement += " at target \(targetNumber)"
+        }
+        
+        if clockRegion > 0 {
+            announcement += " at \(clockRegion) o'clock"
+        }
+        
+        if shotResult.distance > 0 {
+            announcement += ", distance \(distance) units"
+        }
+        
+        // Add accuracy assessment
+        if shotResult.distance < 10 {
+            announcement += ". Excellent shot!"
+        } else if shotResult.distance < 20 {
+            announcement += ". Good shot!"
+        } else if shotResult.distance < 30 {
+            announcement += ". Fair shot."
+        } else {
+            announcement += ". Keep practicing!"
+        }
+        
+        print("🎯 [BALLISTiQ] \(announcement)")
+        speechManager.speak(text: announcement)
     }
     
     // MARK: - Logging
